@@ -37,6 +37,13 @@ class Datataizhang:
         self.conn.close()            
         print(df_result.head())        
         return(df_result)
+    def get_all_quota(self):
+        sql = "SELECT * \
+            FROM zls_tjfx.cs_Quota_Define"
+        df_zhibiao = pd.read_sql(sql,self.conn)        
+        df_zhibiao.query("EFFECTYPE == 'Y'",inplace = True)        
+        result = df_zhibiao[['QUOTA_CODE','QUOTA_NAME','REMARK','QUOTA_FULL_NAME']].drop_duplicates(['QUOTA_CODE','QUOTA_NAME'])
+        return result
         
     def importdata(self,mylist:list):
         c = self.conn.cursor()  # 使用 cursor() 方法创建一个游标对象 cursor

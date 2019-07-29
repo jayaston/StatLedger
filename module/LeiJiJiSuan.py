@@ -5,10 +5,10 @@ Created on Wed Feb 27 09:00:13 2019
 @author: XieJie
 """
 import sys
-sys.path.append('E:\\pyworks')
+sys.path.append(r'E:\pyworks\StatLedger\module')
 import pandas as pd
 import numpy as np
-import ShuJuCaoZuo.shujuyuan as sj
+import shujuyuan as sj
 import re   
 import cx_Oracle
 
