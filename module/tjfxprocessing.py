@@ -4,64 +4,68 @@ Created on Wed Feb 27 09:00:13 2019
 
 @author: XieJie
 """
-import sys
-sys.path.append(r'E:\pyworks\StatLedger\module')
+#import sys
 import pandas as pd
 import numpy as np
-import shujuyuan as sj
+from tjfxdata import TjfxData
 import re   
 import cx_Oracle
 
 
-def leijijisuan(startd,endd):
-
-    gongshiku = pd.read_excel('C:\\Users\\XieJie\\Desktop\\tjfx数据库\\python公式库北部.xlsx','layer3',dtype='object')
+def order_gongshiku():
+        gongshiku = pd.read_excel('C:\\Users\\XieJie\\Desktop\\tjfx数据库\\python公式库北部.xlsx','layer3',dtype='object')
     
-    gongshiku = gongshiku.drop(['zbming'],axis=1)
-    
-    gongshiku['zhibiao'] = gongshiku['RECORD_TYPE']+'_'+gongshiku['var_dept']+'_'+gongshiku['var_code']
+        gongshiku = gongshiku.drop(['zbming'],axis=1)
         
+        gongshiku['zhibiao'] = gongshiku['RECORD_TYPE']+'_'+gongshiku['var_dept']+'_'+gongshiku['var_code']
+            
+        
+        def newformula(x):#对通用公式进行还原函数
+            result = re.sub(r'(?=\b_)', x['var_dept'],x['setformula'])
+            result = re.sub(r'(?<=_\b)', x['var_code'],result)
+            result = re.sub(r'(?=\b\d+_)', x['RECORD_TYPE']+'_',result)
+            return result
+        
+        gongshiku['setformula'] = gongshiku.apply(newformula,axis=1)
+        gongshiku['zhibiaoji'] = gongshiku.apply(lambda x: re.findall(r'\b[a-z]_\d+_\d+\b',x['setformula']),axis=1)
+        gongshiku.drop(['var_code','var_dept'],axis=1,inplace=True)
+        
+        def insert_sort(ilist,idict):#对公式库进行排序函数
+            for i in range(len(ilist)):
+                for j in range(i):
+                    if ilist[i] in idict[ilist[j]]:
+                        ilist.insert(j,ilist.pop(i))
+                        break
+            return ilist
+        
+        gongshiku_dict = dict(zip(gongshiku['zhibiao'],gongshiku['zhibiaoji']))
+        #gongshiku_dict2 = gongshiku[['zhibiao','zhibiaoji']].set_index('zhibiao').T.to_dict('list')
+        zhibiao_list = list(gongshiku['zhibiao'])
+        zhibiao_list = insert_sort(zhibiao_list,gongshiku_dict)
+         
+        zhibiao_list = sorted(set(zhibiao_list),key=zhibiao_list.index) 
+        
+        gongshiku['formula']=gongshiku['zhibiao']+' = '+gongshiku['setformula']
+        #gongshiku.set_index('zhibiao',inplace=True)
+        
+        #此处重写排序公式
+        gongshiku['zhibiao'] = gongshiku['zhibiao'].astype('category')
+        gongshiku['zhibiao'].cat.reorder_categories(zhibiao_list, inplace=True)
+        gongshiku['theindex'] = list(gongshiku.index)
+        gongshiku.sort_values(['zhibiao','theindex'], inplace=True)
+        gongshiku = gongshiku.reset_index()     
+        
+        #gongshiku.to_excel("E:\\pyworks\\gongshiku.xls")
+        #gongshiku=gongshiku.reindex(zhibiao_list)
+        gongshiku.to_excel(r"C:\Users\XieJie\Desktop\排序公式库.xlsx")
+        return gongshiku
     
-    def newformula(x):#对通用公式进行还原函数
-        result = re.sub(r'(?=\b_)', x['var_dept'],x['setformula'])
-        result = re.sub(r'(?<=_\b)', x['var_code'],result)
-        result = re.sub(r'(?=\b\d+_)', x['RECORD_TYPE']+'_',result)
-        return result
-    
-    gongshiku['setformula'] = gongshiku.apply(newformula,axis=1)
-    gongshiku['zhibiaoji'] = gongshiku.apply(lambda x: re.findall(r'\b[a-z]_\d+_\d+\b',x['setformula']),axis=1)
-    gongshiku.drop(['var_code','var_dept'],axis=1,inplace=True)
-    
-    def insert_sort(ilist,idict):#对公式库进行排序函数
-        for i in range(len(ilist)):
-            for j in range(i):
-                if ilist[i] in idict[ilist[j]]:
-                    ilist.insert(j,ilist.pop(i))
-                    break
-        return ilist
-    
-    gongshiku_dict = dict(zip(gongshiku['zhibiao'],gongshiku['zhibiaoji']))
-    #gongshiku_dict2 = gongshiku[['zhibiao','zhibiaoji']].set_index('zhibiao').T.to_dict('list')
-    zhibiao_list = list(gongshiku['zhibiao'])
-    zhibiao_list = insert_sort(zhibiao_list,gongshiku_dict)
-     
-    zhibiao_list = sorted(set(zhibiao_list),key=zhibiao_list.index) 
-    
-    gongshiku['formula']=gongshiku['zhibiao']+' = '+gongshiku['setformula']
-    #gongshiku.set_index('zhibiao',inplace=True)
-    
-    #此处重写排序公式
-    gongshiku['zhibiao'] = gongshiku['zhibiao'].astype('category')
-    gongshiku['zhibiao'].cat.reorder_categories(zhibiao_list, inplace=True)
-    gongshiku['theindex'] = list(gongshiku.index)
-    gongshiku.sort_values(['zhibiao','theindex'], inplace=True)
-    gongshiku = gongshiku.reset_index()
-    
-    #gongshiku.to_excel("E:\\pyworks\\gongshiku.xls")
-    #gongshiku=gongshiku.reindex(zhibiao_list)
-    gongshiku.to_excel(r"C:\Users\XieJie\Desktop\排序公式库.xlsx")
-    
-    shuju_df = sj.Datataizhang().getdata(startd,endd)
+
+
+
+def accum_tjfx(startd,endd):
+    gongshiku = order_gongshiku()    
+    shuju_df = TjfxData().getdata(startd,endd)
     shuju_df = shuju_df.query("RECORD_TYPE=='d'")
     
     shuju_df.QUOTA_VALUE = pd.to_numeric(shuju_df.QUOTA_VALUE,errors='coercs').fillna(0)
@@ -129,7 +133,7 @@ def leijijisuan(startd,endd):
     return shuju_leiji
 
 if __name__=="__main__":
-    test = leijijisuan("20190201","20190228")
+    test = accum_tjfx("20190201","20190228")
 
 
 

@@ -9,4 +9,4 @@ sys.path.append(r'E:\pyworks\StatLedger\module')
 import shujuyuan as sj
 
 result = sj.Datataizhang().get_all_quota()
-result.to_excel('所有在用指标.xlsx')
+result.to_excel(r'../输出/所有在用指标.xlsx')
