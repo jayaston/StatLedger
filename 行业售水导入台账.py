@@ -77,7 +77,7 @@ def dir_data(dirpath):
 
 
 
-if __name__ == 'main' :    
+if __name__ == "__main__" :    
     test = dir_data(r'E:\pyworks\行业表')
     import shujuyuan as sj    
     sj.Datataizhang().importdata(test)

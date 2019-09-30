@@ -45,6 +45,13 @@ class TjfxData:
         df_zhibiao.query("EFFECTYPE == 'Y'",inplace = True)        
         result = df_zhibiao[['QUOTA_CODE','QUOTA_NAME','REMARK','QUOTA_FULL_NAME']].drop_duplicates(['QUOTA_CODE','QUOTA_NAME'])
         return result
+    
+    def get_all_dept(self):
+        sql = "SELECT DISTINCT GROUP_CODE , GROUP_NAME \
+            FROM zls_tjfx.hr_organization"  
+        df_bumen = pd.read_sql(sql,self.conn) 
+        result = df_bumen.drop_duplicates(['GROUP_CODE','GROUP_NAME'])
+        return result
         
     def importdata(self,mylist:list):
         c = self.conn.cursor()  # 使用 cursor() 方法创建一个游标对象 cursor
